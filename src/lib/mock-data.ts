@@ -1,17 +1,20 @@
-// Mock data for appointments, services, and professionals
+// src/lib/mock-data.ts
 
+// Interfaces adaptadas para a Barbearia
 export interface Service {
   id: number;
   name: string;
-  duration: number; // in minutes
+  duration: number; // em minutos
   color: string;
+  price: number; // Adicionei preço para ficar completo
 }
 
 export interface Professional {
   id: number;
   name: string;
-  specialty: string;
+  specialty: string; // Ex: "Corte & Barba", "Visagismo"
   color: string;
+  avatar_url?: string; // Preparando para futuro
 }
 
 export interface Appointment {
@@ -26,61 +29,56 @@ export interface Appointment {
   status: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 }
 
+// --- DADOS DA BARBEARIA (Alinhado com o N8N) ---
+
 export const services: Service[] = [
-  { id: 1, name: "Consulta Geral", duration: 30, color: "bg-blue-500" },
-  { id: 2, name: "Exame de Rotina", duration: 45, color: "bg-green-500" },
-  { id: 3, name: "Retorno", duration: 20, color: "bg-purple-500" },
-  {
-    id: 4,
-    name: "Procedimento Especial",
-    duration: 60,
-    color: "bg-orange-500",
-  },
-  { id: 5, name: "Avaliação", duration: 40, color: "bg-pink-500" },
+  { id: 1, name: "Corte Social", duration: 30, color: "bg-zinc-800", price: 45.00 },
+  { id: 2, name: "Barba Completa", duration: 25, color: "bg-amber-700", price: 35.00 },
+  { id: 3, name: "Combo (Corte + Barba)", duration: 50, color: "bg-blue-900", price: 70.00 },
+  { id: 4, name: "Pezinho / Acabamento", duration: 15, color: "bg-gray-500", price: 20.00 },
+  { id: 5, name: "Platinado / Química", duration: 90, color: "bg-purple-700", price: 120.00 },
 ];
 
 export const professionals: Professional[] = [
   {
     id: 1,
-    name: "Dr. João Silva",
-    specialty: "Clínico Geral",
-    color: "bg-blue-600",
+    name: "Carlos Barba",
+    specialty: "Clássico & Tesoura",
+    color: "bg-amber-600",
   },
   {
     id: 2,
-    name: "Dra. Maria Santos",
-    specialty: "Cardiologista",
-    color: "bg-green-600",
+    name: "Felipe Tesoura",
+    specialty: "Degradê & Moderno",
+    color: "bg-zinc-700",
   },
   {
     id: 3,
-    name: "Dr. Pedro Costa",
-    specialty: "Ortopedista",
-    color: "bg-purple-600",
-  },
-  {
-    id: 4,
-    name: "Dra. Ana Oliveira",
-    specialty: "Dermatologista",
-    color: "bg-orange-600",
+    name: "André Navalha",
+    specialty: "Visagismo & Barboterapia",
+    color: "bg-blue-700",
   },
 ];
 
-// Generate mock appointments for the next 7 days
+// Gerador de Agendamentos Fictícios (Mock)
 export function generateMockAppointments(): Appointment[] {
   const appointments: Appointment[] = [];
   const today = new Date();
 
-  // Generate appointments for 7 days
+  // Gera dados para os próximos 7 dias
   for (let day = 0; day < 7; day++) {
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + day);
 
-    // Generate 5-8 appointments per day
-    const appointmentsPerDay = Math.floor(Math.random() * 4) + 5;
+    // Ignora Domingo (dia 0) se a barbearia fecha
+    if (currentDate.getDay() === 0) continue;
+
+    // 6 a 10 agendamentos por dia
+    const appointmentsPerDay = Math.floor(Math.random() * 5) + 6;
 
     for (let i = 0; i < appointmentsPerDay; i++) {
-      const hour = 8 + Math.floor(Math.random() * 9); // 8am to 5pm
+      // Horário comercial: 09h às 19h
+      const hour = 9 + Math.floor(Math.random() * 10);
       const minute = Math.random() > 0.5 ? 0 : 30;
 
       const startTime = new Date(currentDate);
@@ -93,17 +91,17 @@ export function generateMockAppointments(): Appointment[] {
       const statuses: Appointment["status"][] = [
         "scheduled",
         "confirmed",
-        "in_progress",
-        "completed",
+        "completed", // Removi "in_progress" pois é raro usar manualmente
       ];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      // Peso maior para "confirmed"
+      const status = Math.random() > 0.3 ? "confirmed" : statuses[Math.floor(Math.random() * statuses.length)];
 
       appointments.push({
         id: `apt-${day}-${i}`,
         created_at: new Date().toISOString(),
         service_code: service.id,
-        professional_code:
-          professionals[Math.floor(Math.random() * professionals.length)].id,
+        professional_code: professionals[Math.floor(Math.random() * professionals.length)].id,
         customer_name: getRandomName(),
         customer_phone: getRandomPhone(),
         start_time: startTime.toISOString(),
@@ -114,55 +112,20 @@ export function generateMockAppointments(): Appointment[] {
   }
 
   return appointments.sort(
-    (a, b) =>
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
   );
 }
 
-const firstNames = [
-  "João",
-  "Maria",
-  "Pedro",
-  "Ana",
-  "Carlos",
-  "Juliana",
-  "Ricardo",
-  "Fernanda",
-  "Lucas",
-  "Beatriz",
-  "Rafael",
-  "Camila",
-  "Bruno",
-  "Larissa",
-  "Felipe",
-];
-const lastNames = [
-  "Silva",
-  "Santos",
-  "Oliveira",
-  "Souza",
-  "Costa",
-  "Ferreira",
-  "Rodrigues",
-  "Almeida",
-  "Nascimento",
-  "Lima",
-  "Araújo",
-  "Fernandes",
-  "Carvalho",
-  "Gomes",
-  "Martins",
-];
+const firstNames = ["Marcos", "Guilherme", "Rafael", "Lucas", "Matheus", "Gabriel", "Pedro", "Thiago", "Felipe", "João"];
+const lastNames = ["Silva", "Oliveira", "Santos", "Pereira", "Costa", "Almeida", "Nascimento", "Rodrigues"];
 
 function getRandomName(): string {
-  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-  return `${firstName} ${lastName}`;
+  return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
 }
 
 function getRandomPhone(): string {
-  const ddd = Math.floor(Math.random() * 20) + 11; // DDDs from 11 to 30
-  const firstPart = Math.floor(Math.random() * 90000) + 10000;
-  const secondPart = Math.floor(Math.random() * 9000) + 1000;
-  return `(${ddd}) 9${firstPart}-${secondPart}`;
+  const ddd = 85; // DDD Fortaleza/Ceará (exemplo)
+  const part1 = 90000 + Math.floor(Math.random() * 9999);
+  const part2 = 1000 + Math.floor(Math.random() * 8999);
+  return `(${ddd}) ${part1}-${part2}`;
 }

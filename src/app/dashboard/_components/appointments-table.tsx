@@ -25,6 +25,27 @@ interface AppointmentsTableProps {
   isRefreshing?: boolean;
 }
 
+// Função auxiliar para traduzir status (opcional, se vier do banco em inglês)
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'confirmed': return 'Confirmado';
+    case 'completed': return 'Concluído';
+    case 'cancelled': return 'Cancelado';
+    case 'scheduled': return 'Agendado';
+    default: return status;
+  }
+};
+
+// Função auxiliar para cor do status
+const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  switch (status) {
+    case 'confirmed': return 'default'; // Preto/Padrão
+    case 'completed': return 'secondary'; // Cinza/Verde dependendo do tema
+    case 'cancelled': return 'destructive'; // Vermelho
+    default: return 'outline';
+  }
+};
+
 export function AppointmentsTable({
   appointments,
   isLoading = false,
@@ -43,6 +64,7 @@ export function AppointmentsTable({
   const filteredAppointments = useMemo(() => {
     let filtered = appointments;
 
+    // Filtro por Profissional
     if (selectedProfessionalId !== "all") {
       filtered = filtered.filter(
         (appointment) =>
@@ -50,6 +72,7 @@ export function AppointmentsTable({
       );
     }
 
+    // Filtro por Nome do Cliente
     if (searchQuery.trim()) {
       filtered = filtered.filter((appointment) =>
         appointment.customer_name
@@ -88,12 +111,15 @@ export function AppointmentsTable({
     <>
       <Card>
         <div className="p-6 space-y-4">
-          <div>
-            <h2 className="text-xl font-semibold">Agendamentos do Dia</h2>
-            <p className="text-sm text-muted-foreground">
-              Visualize e gerencie os atendimentos agendados
-            </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Agendamentos do Dia</h2>
+              <p className="text-sm text-muted-foreground">
+                Visualize e gerencie os atendimentos agendados
+              </p>
+            </div>
           </div>
+          
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -144,60 +170,84 @@ export function AppointmentsTable({
           <table className="w-full">
             <thead>
               <tr className="border-y bg-muted/30">
-                <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                  Cliente
-                </th>
-                <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                  Telefone
-                </th>
-                <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                  Horário Início
-                </th>
-                <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                  Horário Fim
-                </th>
-                <th className="text-left p-4 font-medium text-sm text-muted-foreground">
-                  Ações
-                </th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Horário</th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Cliente</th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Serviço</th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Profissional</th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Status</th>
+                <th className="text-left p-4 font-medium text-sm text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredAppointments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="p-12 text-center text-muted-foreground"
                   >
-                    Nenhum agendamento encontrado para esta data
+                    Nenhum agendamento encontrado com os filtros atuais
                   </td>
                 </tr>
               ) : (
                 filteredAppointments.map((appointment) => {
+                  // Fallback seguro caso o join falhe ou esteja carregando
+                  const professionalName = appointment.professional?.name || "N/A";
+                  const serviceName = appointment.service?.code || "Serviço não ident."; 
+                  // Nota: no seu type service.code é string (nome) ou code mesmo? 
+                  // Se service.code for o NOME no mock, use isso. Se tiver um campo 'name', troque para service.name.
+                  
                   return (
                     <tr
                       key={appointment.id}
                       className="border-b hover:bg-muted/20 transition-colors"
                     >
+                      {/* 1. Coluna Horário (Início - Fim) */}
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">
+                            {formatTimeBR(appointment.start_time)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            até {formatTimeBR(appointment.end_time)}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 2. Coluna Cliente */}
                       <td className="p-4">
-                        <span className="font-medium">
-                          {appointment.customer_name}
+                        <div className="flex flex-col">
+                          <span className="font-medium">{appointment.customer_name}</span>
+                          <span className="text-xs text-muted-foreground">{appointment.customer_phone}</span>
+                        </div>
+                      </td>
+
+                      {/* 3. Coluna Serviço (NOVA) */}
+                      <td className="p-4">
+                         {/* Ajuste aqui se seu objeto service tiver 'name' ou 'code' como nome */}
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                           {/* Como no seu mock data 'services' tem 'name', o ideal é que a relation traga 'name' */}
+                           {/* Assumindo que o join traz o objeto completo do mock: */}
+                           {(appointment as any).service?.name || (appointment as any).service?.code || "Corte"}
                         </span>
                       </td>
+
+                      {/* 4. Coluna Profissional (NOVA) */}
                       <td className="p-4">
-                        <span className="text-sm text-muted-foreground">
-                          {appointment.customer_phone}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {professionalName}
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4">
-                        <span className="text-sm">
-                          {formatTimeBR(appointment.start_time)}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-sm">
-                          {formatTimeBR(appointment.end_time)}
-                        </span>
-                      </td>
+
+                       {/* 5. Coluna Status (NOVA) */}
+                       <td className="p-4">
+                          <Badge variant={getStatusVariant((appointment as any).status || 'scheduled')}>
+                            {getStatusLabel((appointment as any).status || 'scheduled')}
+                          </Badge>
+                       </td>
+
+                      {/* 6. Ações */}
                       <td className="p-4">
                         <Button
                           variant="ghost"
@@ -221,6 +271,8 @@ export function AppointmentsTable({
         onClose={() => setSelectedAppointment(null)}
         onUpdate={() => {
           setSelectedAppointment(null);
+          // O ideal seria chamar o refresh aqui também se necessário
+          if (onRefresh) onRefresh();
         }}
       />
     </>
